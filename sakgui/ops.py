@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
-from . import forwarder, split
-from .config import JOB_PREFIX, Config
+from . import __version__, forwarder, split, updater
+from .config import JOB_PREFIX, TOOLS_HOME, Config, tools_complete
 from .i18n import tr
 from .tasks import ExpandStep, FuncStep, LogStep, ProcStep, Task
 
@@ -413,3 +413,41 @@ def nro_forwarder(cfg: Config, outdir: Path, *, name: str, publisher: str, versi
         ProcStep(exe, args, cwd=str(tmp)),
         FuncStep(collect),
     ], temp_dirs=[tmp])]
+
+
+# ---------------------------------------------------------------- tools download / update check / 工具下载与更新检查
+def download_tools(cfg: Config) -> List[Task]:
+    """Fetch the latest SAK release into ./tools and point Settings at it (keys untouched).
+    下载最新 SAK 发布包到 ./tools，并把设置里的工具目录指向它（不动密钥）。"""
+    tmp = _job_temp(cfg)
+
+    def run(ctx):
+        updater.install_tools(TOOLS_HOME, tmp, ctx, lambda key, *a: ctx.log("  " + tr(key, *a)))
+        cfg["tools_dir"] = str(TOOLS_HOME)
+        cfg.save()
+
+    return [Task(tr("task_download_tools"), [FuncStep(run)], temp_dirs=[tmp])]
+
+
+def check_updates(cfg: Config, result: dict) -> List[Task]:
+    """Compare installed tools and this app with the latest releases; findings go to `result`.
+    比较已安装工具和本程序与最新发布版本；结果写入 result。"""
+    def run(ctx):
+        tag, _, size = updater.latest_sak()
+        have = updater.installed_tools_version(cfg.tools_dir())
+        if have == tag:
+            ctx.log("  " + tr("tools_uptodate", tag))
+        elif not have and tools_complete(cfg.tools_dir()):
+            # Installed by hand (no version record): don't nag. / 手动安装、无版本记录：不催促重新下载。
+            ctx.log("  " + tr("tools_manual", tag))
+        else:
+            result["tools"] = tag
+            ctx.log("  " + tr("tools_update_avail", have or tr("unknown"), tag))
+        app = updater.latest_app()
+        if app:
+            result["app"] = app
+            ctx.log("  " + tr("app_update_avail", __version__, app))
+        else:
+            ctx.log("  " + tr("app_uptodate", __version__))
+
+    return [Task(tr("task_check_updates"), [FuncStep(run)])]

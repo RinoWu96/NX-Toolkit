@@ -4,13 +4,13 @@ import re
 from pathlib import Path
 from typing import List
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel,
                                QLineEdit, QMessageBox, QPushButton, QRadioButton, QScrollArea, QSpinBox,
                                QVBoxLayout, QWidget)
 
-from . import forwarder, ops
+from . import forwarder, ops, updater
 from .config import TOOLS, Config, open_folder
 from .i18n import tr
 from .tasks import Task
@@ -410,9 +410,12 @@ class SettingsPage(Page):
     title_key = "settings_title"
     has_output = False
 
-    def __init__(self, cfg, submit, on_lang_change):
+    def __init__(self, cfg, submit, on_lang_change, runner):
         self.on_lang_change = on_lang_change
+        self.runner = runner
+        self._updates = {}
         super().__init__(cfg, submit)
+        runner.all_done.connect(self._after_tasks)
 
     def build(self):
         c = Card(tr("language"))
@@ -440,6 +443,25 @@ class SettingsPage(Page):
         self.status_grid = QGridLayout()
         s.add(self.status_grid)
         self.content.addWidget(s)
+
+        t = Card(tr("card_tools"))
+        note = QLabel(tr("tools_source"))
+        note.setObjectName("status")
+        note.setWordWrap(True)
+        t.add(note)
+        self.tools_ver = QLabel("")
+        self.tools_ver.setObjectName("status")
+        t.add(self.tools_ver)
+        row = QHBoxLayout()
+        dl = QPushButton(tr("btn_download_tools"))
+        dl.clicked.connect(self._download_tools)
+        up = QPushButton(tr("btn_check_updates"))
+        up.clicked.connect(self._check_updates)
+        row.addWidget(dl)
+        row.addWidget(up)
+        row.addStretch(1)
+        t.add(row)
+        self.content.addWidget(t)
         self._check()
 
         row = QHBoxLayout()
@@ -467,6 +489,7 @@ class SettingsPage(Page):
             items.append(("nsz (python)", None))
         except ImportError:
             items.append(("nsz (python)", Path("<missing>")))
+        self.tools_ver.setText(tr("tools_version", updater.installed_tools_version(tools) or tr("unknown")))
         for i, (name, path) in enumerate(items):
             ok = path is None or path.is_file()
             a = QLabel(name)
@@ -474,6 +497,25 @@ class SettingsPage(Page):
             b.setObjectName("ok" if ok else "bad")
             self.status_grid.addWidget(a, i // 2, (i % 2) * 2)
             self.status_grid.addWidget(b, i // 2, (i % 2) * 2 + 1)
+
+    def _download_tools(self):
+        self.submit(ops.download_tools(self.cfg))
+
+    def _check_updates(self):
+        self._updates = {}
+        self.submit(ops.check_updates(self.cfg, self._updates))
+
+    def _after_tasks(self, ok, cancelled):
+        """Refresh paths/status after any task; act on update-check findings.
+        任务结束后刷新路径和工具状态；处理检查更新的结果。"""
+        self.tools.set_value(self.cfg["tools_dir"])
+        self.keys.set_value(self.cfg["keys"])
+        self._check()
+        found, self._updates = self._updates, {}
+        if "tools" in found and QMessageBox.question(self, "", tr("tools_update_prompt", found["tools"])) == QMessageBox.Yes:
+            self._download_tools()
+        if "app" in found and QMessageBox.question(self, "", tr("app_update_prompt", found["app"])) == QMessageBox.Yes:
+            QDesktopServices.openUrl(QUrl(updater.APP_PAGE))
 
     def _save(self):
         old_lang = self.cfg["lang"]

@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from PySide6.QtCore import QByteArray, QSize, Qt
+from PySide6.QtCore import QByteArray, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMainWindow,
                                QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
                                QStackedWidget, QVBoxLayout, QWidget)
 
-from . import __version__, pages, theme
-from .config import APP_DIR, Config
+from . import __version__, ops, pages, theme
+from .config import APP_DIR, Config, tools_complete
 
 LOG_DIR = APP_DIR / "logs"
 from .i18n import set_lang, tr
@@ -77,6 +77,12 @@ class MainWindow(QMainWindow):
         purged = cfg.purge_stale_temp()
         if purged:
             self._append_log(tr("temp_purged", purged))
+        if cfg.autodetect():
+            self._append_log(tr("tools_autodetected", cfg["tools_dir"]))
+            self._build()
+        if not tools_complete(cfg.tools_dir()):
+            # Ask after the window is shown. / 等窗口显示出来后再询问。
+            QTimer.singleShot(400, self._offer_tool_download)
 
     # ---------------------------------------------------------------- layout / 布局
     def _build(self, page_index: int = 0):
@@ -115,7 +121,7 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         for _, _, cls in NAV:
             if cls is pages.SettingsPage:
-                page = cls(self.cfg, self.submit, self._lang_changed)
+                page = cls(self.cfg, self.submit, self._lang_changed, self.runner)
             else:
                 page = cls(self.cfg, self.submit)
             self.stack.addWidget(page)
@@ -211,6 +217,11 @@ class MainWindow(QMainWindow):
         if self._pending_rebuild:
             self._pending_rebuild = False
             self._build(self.nav.currentRow())
+
+    def _offer_tool_download(self):
+        if QMessageBox.question(self, "", tr("tools_missing_prompt")) == QMessageBox.Yes:
+            self.nav.setCurrentRow(len(NAV) - 2)  # Settings page / 设置页
+            self.submit(ops.download_tools(self.cfg))
 
     def _lang_changed(self):
         if self.runner.busy():

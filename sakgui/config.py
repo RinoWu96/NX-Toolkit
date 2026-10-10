@@ -11,9 +11,8 @@ from pathlib import Path
 APP_DIR = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
 CONFIG_PATH = APP_DIR / "config.json"
 
-# The original SAK release, unpacked next to this folder, ships the CLI tools we drive.
-# 解压在本文件夹旁边的原版 SAK 自带了本程序调用的命令行工具。
-_SAK_BIN = APP_DIR.parent / "SAK_64bit" / "bin"
+# Where downloaded tools go (Settings → download). / 下载的工具存放位置（设置 → 下载）。
+TOOLS_HOME = APP_DIR / "tools"
 
 # Per-task temp folders; only folders named like this are ever deleted.
 # 每个任务的临时文件夹；程序只会删除以此开头的文件夹。
@@ -27,8 +26,25 @@ TOOLS = {
 }
 
 
+def tools_complete(d: Path) -> bool:
+    return all((d / exe).is_file() for exe in TOOLS.values())
+
+
+def find_tools_dir() -> Path:
+    """Look for a folder holding the CLI tools: ./tools, ./bin, then SAK_64bit/bin next to this
+    folder or any of its parents (the exe usually sits deeper, e.g. dist/NX-Toolkit/).
+    查找命令行工具目录：先看 ./tools、./bin，再沿本目录及其上级逐级查找 SAK_64bit/bin
+    （exe 通常位于更深的目录，例如 dist/NX-Toolkit/）。Falls back to ./tools."""
+    candidates = [TOOLS_HOME, APP_DIR / "bin"]
+    candidates += [p / "SAK_64bit" / "bin" for p in [APP_DIR, *list(APP_DIR.parents)[:4]]]
+    for c in candidates:
+        if tools_complete(c):
+            return c
+    return TOOLS_HOME
+
+
 def _defaults() -> dict:
-    tools = _SAK_BIN if _SAK_BIN.is_dir() else APP_DIR / "bin"
+    tools = find_tools_dir()
     return {
         "lang": "zh",
         "tools_dir": str(tools),
@@ -54,6 +70,25 @@ class Config:
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def autodetect(self) -> bool:
+        """If the configured tools / keys paths are broken, switch to ones that exist.
+        设置里的工具或密钥路径失效时，自动换成能找到的位置。Returns True if anything changed."""
+        changed = False
+        if not tools_complete(self.tools_dir()):
+            found = find_tools_dir()
+            if tools_complete(found):
+                self["tools_dir"] = str(found)
+                changed = True
+        if not self.keys().is_file():
+            for k in (self.tools_dir() / "prod.keys", Path.home() / ".switch" / "prod.keys"):
+                if k.is_file():
+                    self["keys"] = str(k)
+                    changed = True
+                    break
+        if changed:
+            self.save()
+        return changed
 
     def save(self):
         CONFIG_PATH.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")

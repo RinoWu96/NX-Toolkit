@@ -24,12 +24,14 @@
 - 根据文件名里的 Title ID 识别本体、更新包和 DLC，避免把单独的更新包做成 XCI 之类的错误操作，并给出替代方案
 - 每个任务使用独立的临时文件夹，结束后（无论成功、失败还是取消）自动删除
 - 日志同时写入 `logs/nx-toolkit.log`，便于排查问题
+- 设置页可一键下载 / 更新工具，并检查本程序是否有新版本
+- 排查问题：命令行运行 `NX-Toolkit.exe --selftest` 可查看工具、密钥的查找结果
 
 ## 使用
 
 1. 从 [Releases](../../releases) 下载 `NX-Toolkit-*-win64.zip` 并解压。
-2. **准备命令行工具**：本程序不附带第三方工具。最简单的方式是把原版 SAK 压缩包解压到 NX-Toolkit 文件夹旁边（目录名为 `SAK_64bit`），程序会自动使用其中的 `bin` 目录；也可以在「设置」里指定任意包含以下文件的目录：
-   `hactoolnet.exe`、`4nxci.exe`、`squirrel.exe`、`hacbrewpack.exe`，以及转发器用的 `nro_fw_main`、`nro_fw_main.npdm`。
+2. **准备命令行工具**：首次启动时如果找不到工具，程序会询问是否**一键下载**。工具来自原版 SAK 的 GitHub 发布包（约 28 MB，不含密钥），存放在程序目录下的 `tools` 文件夹；之后也可以在「设置 → 工具下载与更新」里重新下载或检查更新。
+   程序也会自动查找已有的工具：程序目录下的 `tools` 或 `bin`，以及程序所在目录和上级目录里的 `SAK_64bit\bin`。还可以在「设置」里手动指定任意包含 `hactoolnet.exe`、`4nxci.exe`、`squirrel.exe`、`hacbrewpack.exe`（转发器另需 `nro_fw_main`、`nro_fw_main.npdm`）的目录。
 3. **准备密钥**：在「设置」里指定 `prod.keys`。请使用从你**自己的主机**导出的密钥，本项目不提供任何密钥。
 4. 运行 `NX-Toolkit.exe`。
 
@@ -95,12 +97,14 @@ Also:
 - Detects base / update / DLC from the title ID in the file name, blocks impossible operations (such as turning a lone update into an XCI) and suggests alternatives
 - Every task uses its own temp folder, deleted when the task ends (success, failure or cancel)
 - The log is also written to `logs/nx-toolkit.log` for troubleshooting
+- One-click tool download / update and app update check in Settings
+- Troubleshooting: run `NX-Toolkit.exe --selftest` to see where tools and keys are found
 
 ## Usage
 
 1. Download `NX-Toolkit-*-win64.zip` from [Releases](../../releases) and unzip it.
-2. **Get the command-line tools**: they are not bundled. The easiest way is to unzip the original SAK release next to the NX-Toolkit folder (as `SAK_64bit`); its `bin` folder is picked up automatically. Alternatively, point Settings to any folder containing
-   `hactoolnet.exe`, `4nxci.exe`, `squirrel.exe`, `hacbrewpack.exe`, plus `nro_fw_main` and `nro_fw_main.npdm` for forwarders.
+2. **Command-line tools**: if they are missing on first start, the program offers a **one-click download** from the original SAK release on GitHub (about 28 MB, no keys) into the `tools` folder next to the program. You can re-download or check for updates later under Settings → Tools download & update.
+   Existing tools are also found automatically: `tools` or `bin` next to the program, or `SAK_64bit\bin` in the program folder or any parent folder. You can also point Settings to any folder containing `hactoolnet.exe`, `4nxci.exe`, `squirrel.exe`, `hacbrewpack.exe` (plus `nro_fw_main` and `nro_fw_main.npdm` for forwarders).
 3. **Keys**: set `prod.keys` in Settings. Use keys dumped from **your own console**; this project provides no keys.
 4. Run `NX-Toolkit.exe`.
 

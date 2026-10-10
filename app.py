@@ -43,9 +43,32 @@ def main():
     sys.exit(app.exec())
 
 
+def selftest():
+    """Print where tools / keys are found and whether bundled modules load (for troubleshooting).
+    输出工具和密钥的查找结果，以及打包的模块能否加载（用于排查问题）。"""
+    if sys.stdout is None:
+        sys.stdout = open(1, "w", encoding="utf-8", buffering=1, closefd=False)
+    from sakgui import __version__
+    from sakgui.config import APP_DIR, Config, find_tools_dir, tools_complete
+    cfg = Config()
+    print("version  ", __version__)
+    print("app dir  ", APP_DIR)
+    print("found    ", find_tools_dir(), tools_complete(find_tools_dir()))
+    print("config   ", cfg.tools_dir(), tools_complete(cfg.tools_dir()))
+    print("keys     ", cfg.keys(), cfg.keys().is_file())
+    for mod in ("nsz", "py7zr", "bcj", "PIL"):
+        try:
+            __import__(mod)
+            print("module   ", mod, "ok")
+        except Exception as e:
+            print("module   ", mod, "FAILED", e)
+
+
 if __name__ == "__main__":
     multiprocessing.freeze_support()  # nsz uses multiprocessing / nsz 使用了多进程
     if len(sys.argv) > 1 and sys.argv[1] == "--run-nsz":
         run_nsz(sys.argv[2:])
+    elif len(sys.argv) > 1 and sys.argv[1] == "--selftest":
+        selftest()
     else:
         main()
