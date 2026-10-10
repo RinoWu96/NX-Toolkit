@@ -1,0 +1,19 @@
+# Local environment / 本地环境
+.venv/
+__pycache__/
+
+# Runtime data (may contain personal paths) / 运行时数据（可能含个人路径）
+config.json
+logs/
+temp/
+output/
+
+# Never commit keys / 绝不提交密钥
+*.keys
+keys.txt
+keys.dat
+
+# Build output / 打包产物
+build/
+dist/
+*.spec
