@@ -63,6 +63,10 @@ python -m venv .venv
 
 各工具的版权和许可证归其作者所有。
 
+## 许可证
+
+NX Toolkit 的源代码采用 [MIT 许可证](LICENSE)。打包的 exe 内置的第三方库（PySide6/Qt、nsz、py7zr 等）各自适用其原有许可证，完整清单见 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)，许可证原文随 exe 放在 `licenses\` 文件夹中。外部命令行工具不随本程序分发，适用其作者的许可证。
+
 ## 免责声明
 
 本项目与任天堂（Nintendo）及上述各工具的作者均无关联。本项目不包含、也不提供任何密钥、固件或游戏文件。请只处理你合法拥有的内容，并遵守所在地区的法律。
@@ -135,6 +139,10 @@ To build the exe, install `pyinstaller` and run `build.bat`; the result is in `d
 | [PySide6](https://doc.qt.io/qtforpython/) | The Qt Company | GUI framework (LGPL) |
 
 Each tool belongs to its authors under its own license.
+
+## License
+
+NX Toolkit's source code is released under the [MIT License](LICENSE). Third-party libraries bundled in the exe (PySide6/Qt, nsz, py7zr, …) remain under their own licenses; see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for the full list, and the `licenses\` folder next to the exe for the license texts. The external command-line tools are not distributed with this program and are covered by their authors' licenses.
 
 ## Disclaimer
 

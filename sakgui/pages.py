@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QGridLayout, 
                                QLineEdit, QMessageBox, QPushButton, QRadioButton, QScrollArea, QSpinBox,
                                QVBoxLayout, QWidget)
 
-from . import forwarder, ops, updater
+from . import __version__, forwarder, ops, updater
 from .config import TOOLS, Config, open_folder
 from .i18n import tr
 from .tasks import Task
@@ -557,9 +557,11 @@ class AboutPage(Page):
         from .i18n import lang
         intro = Card()
         msg = QLabel({
-            "zh": "仅供个人使用。请只处理你合法拥有的游戏，并使用从你自己的主机导出的密钥。\n"
+            "zh": f"NX Toolkit v{__version__} · © 2026 Rino Wu · MIT 许可证（第三方组件见 THIRD_PARTY_LICENSES.md）\n"
+                  "请只处理你合法拥有的游戏，并使用从你自己的主机导出的密钥。\n"
                   "本程序只是外部命令行工具的图形前端；各工具的版权与许可证归其作者所有。",
-            "en": "For personal use only. Only process games you legally own, with keys dumped from your own console.\n"
+            "en": f"NX Toolkit v{__version__} · © 2026 Rino Wu · MIT License (third-party components: THIRD_PARTY_LICENSES.md)\n"
+                  "Only process games you legally own, with keys dumped from your own console.\n"
                   "This program is a graphical front-end for external CLI tools; each tool belongs to its authors under its own license.",
         }[lang()])
         msg.setWordWrap(True)
