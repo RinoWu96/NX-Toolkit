@@ -8,9 +8,10 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
+from struct import error as struct_error
 from typing import List
 
-from . import __version__, forwarder, split, updater
+from . import __version__, forwarder, split, updater, winexe
 from .config import JOB_PREFIX, TOOLS_HOME, Config, tools_complete
 from .i18n import tr
 from .tasks import ExpandStep, FuncStep, LogStep, ProcStep, Task
@@ -105,9 +106,31 @@ def _squirrel_cwd(cfg: Config) -> str:
     return str(work)
 
 
+def _squirrel_exe(cfg: Config) -> str:
+    """Path of a UTF-8 copy of squirrel (made once, kept in temp/squirrel); the original otherwise.
+    返回 squirrel 的 UTF-8 副本路径（只生成一次，放在 temp/squirrel）；做不到时返回原版。
+    Without it, Korean and other non-GBK game titles crash squirrel on Chinese Windows (see winexe).
+    没有副本时，中文 Windows 上遇到韩文等 GBK 之外的游戏名，squirrel 会崩溃（见 winexe）。"""
+    src = Path(_need_tool(cfg, "squirrel"))
+    if not winexe.supports_utf8_codepage():
+        return str(src)
+    work = cfg.temp("squirrel")
+    dst, stamp = work / "squirrel_utf8.exe", work / "squirrel_utf8.src"
+    st = src.stat()
+    sig = f"{src}|{st.st_size}|{int(st.st_mtime)}"
+    if dst.is_file() and stamp.is_file() and stamp.read_text(encoding="utf-8") == sig:
+        return str(dst)
+    try:
+        winexe.make_utf8_copy(src, dst)
+        stamp.write_text(sig, encoding="utf-8")
+        return str(dst)
+    except (OSError, ValueError, struct_error):
+        return str(src)
+
+
 def _step_to_xci(cfg: Config, src: Path, outdir: Path) -> ProcStep:
     args = ["-o", str(outdir), "-t", "xci", "-dc", str(src)]
-    return ProcStep(_need_tool(cfg, "squirrel"), args, cwd=_squirrel_cwd(cfg))
+    return ProcStep(_squirrel_exe(cfg), args, cwd=_squirrel_cwd(cfg))
 
 
 def _step_nsz(cfg: Config, srcs: List[Path], outdir: Path, tmp: Path, compress: bool, n: NszOpts) -> ProcStep:
@@ -285,7 +308,7 @@ def merge(cfg: Config, files: List[str], outdir: Path, fmt: str) -> List[Task]:
     if len(files) < 2:
         raise OpError(tr("merge_need2"))
     _need_keys(cfg)
-    exe = _need_tool(cfg, "squirrel")
+    exe = _squirrel_exe(cfg)
     paths = [Path(f) for f in files]
     label = f"Merge → {fmt.upper()}  {paths[0].stem} (+{len(paths) - 1})"
 
