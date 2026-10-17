@@ -22,6 +22,7 @@
 其他特点：
 - 拖放添加文件，多个任务排队执行，可随时取消
 - 根据文件名里的 Title ID 识别本体、更新包和 DLC，避免把单独的更新包做成 XCI 之类的错误操作，并给出替代方案
+- 合并 / 转换后自动把输出文件名统一为游戏的英文标题（从游戏数据中读取，可在「设置」里关闭）
 - 每个任务使用独立的临时文件夹，结束后（无论成功、失败还是取消）自动删除
 - 日志同时写入 `logs/nx-toolkit.log`，便于排查问题
 - 设置页可一键下载 / 更新工具，并检查本程序是否有新版本
@@ -99,6 +100,7 @@ but the GUI is a complete rewrite and **contains none of SAK's code**. The actua
 Also:
 - Drag-and-drop input, queued tasks, cancel at any time
 - Detects base / update / DLC from the title ID in the file name, blocks impossible operations (such as turning a lone update into an XCI) and suggests alternatives
+- Merge / convert outputs are renamed to the game's English title (read from the game data; can be turned off in Settings)
 - Every task uses its own temp folder, deleted when the task ends (success, failure or cancel)
 - The log is also written to `logs/nx-toolkit.log` for troubleshooting
 - One-click tool download / update and app update check in Settings

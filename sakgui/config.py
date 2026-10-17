@@ -52,6 +52,7 @@ def _defaults() -> dict:
         "output_dir": str(APP_DIR / "output"),
         "temp_dir": str(APP_DIR / "temp"),
         "nsz_level": 18,
+        "english_names": True,
         "geometry": None,
     }
 

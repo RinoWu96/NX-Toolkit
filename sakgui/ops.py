@@ -11,7 +11,7 @@ from pathlib import Path
 from struct import error as struct_error
 from typing import List
 
-from . import __version__, forwarder, split, updater, winexe
+from . import __version__, forwarder, split, titles, updater, winexe
 from .config import JOB_PREFIX, TOOLS_HOME, Config, tools_complete
 from .i18n import tr
 from .tasks import ExpandStep, FuncStep, LogStep, ProcStep, Task
@@ -229,9 +229,27 @@ def content_kind(path: Path) -> str:
     return "base" if low == 0 else "update" if low == 0x800 else "dlc"
 
 
-def _report_outputs(outdir: Path, target: str):
+def _english_rename(cfg: Config, path: Path, ctx) -> Path:
+    """Give an XCI/NSP output an English file name, logging what happened.
+    把输出的 XCI/NSP 改为英文文件名，并在日志中说明结果。"""
+    try:
+        new, status = titles.rename_english(path, cfg.tool("hactoolnet"), cfg.keys(),
+                                            cfg.temp(JOB_PREFIX + uuid.uuid4().hex[:8]))
+    except (OSError, ValueError) as e:
+        ctx.log(tr("en_name_failed", e))
+        return path
+    if status == "renamed":
+        ctx.log(tr("en_name_done", path.name, new.name))
+    elif status == "no_title":
+        ctx.log(tr("en_name_no_title"))
+    return new
+
+
+def _report_outputs(outdir: Path, target: str, cfg: Config = None):
     """First/last step pair: remember when the task started, then list what it produced.
-    一对首尾步骤：记录任务开始时间，结束时列出实际生成的文件。"""
+    With cfg given and the setting on, XCI/NSP outputs are renamed to their English title.
+    一对首尾步骤：记录任务开始时间，结束时列出实际生成的文件。
+    传入 cfg 且设置开启时，会把输出的 XCI/NSP 改为英文标题文件名。"""
     state = {}
 
     def mark(ctx):
@@ -239,6 +257,8 @@ def _report_outputs(outdir: Path, target: str):
 
     def report(ctx):
         new = [p for p in outdir.iterdir() if p.is_file() and p.stat().st_mtime >= state["t"]]
+        if cfg is not None and cfg["english_names"]:
+            new = [_english_rename(cfg, p, ctx) if p.suffix.lower() in (".xci", ".nsp") else p for p in new]
         for p in new:
             ctx.log(tr("output_file", p))
         if not any(p.suffix.lower() == target for p in new):
@@ -270,7 +290,7 @@ def convert(cfg: Config, files: List[str], outdir: Path, target: str, opts: Conv
         steps = _convert_steps(cfg, f, target, outdir, tmp, opts)
         if steps is None:
             continue
-        mark, report = _report_outputs(outdir, target)
+        mark, report = _report_outputs(outdir, target, cfg)
         tasks.append(Task(label, [mark, *_annotate(ext, target, steps), report], temp_dirs=[tmp]))
     return tasks
 
@@ -337,7 +357,7 @@ def merge(cfg: Config, files: List[str], outdir: Path, fmt: str) -> List[Task]:
         args = ["-t", fmt, "-o", str(outdir), "-tfile", str(listfile), "-roma", "TRUE", "-dmul", "calculate"]
         return [LogStep(tr("merge_start", len(inputs), fmt.upper())), ProcStep(exe, args, cwd=_squirrel_cwd(cfg))]
 
-    mark, report = _report_outputs(outdir, "." + fmt)
+    mark, report = _report_outputs(outdir, "." + fmt, cfg)
     return [Task(label, [mark, *steps, ExpandStep(run_merge), report], temp_dirs=[tmp])]
 
 
