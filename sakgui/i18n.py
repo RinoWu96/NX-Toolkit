@@ -109,6 +109,16 @@ STRINGS = {
     "en_name_done": {"zh": "  已改为英文文件名：{0} → {1}", "en": "  Renamed to English title: {0} → {1}"},
     "en_name_no_title": {"zh": "  [注意] 游戏里没有英文标题，保留原文件名", "en": "  [warn] No English title in the game data; file name kept"},
     "en_name_failed": {"zh": "  [注意] 读取英文标题失败，保留原文件名：{0}", "en": "  [warn] Could not read the English title; file name kept: {0}"},
+    "integrity_ok": {"zh": "  完整性检查通过：文件目录登记了 {0} 个文件，覆盖全部数据", "en": "  Integrity check passed: the file index lists {0} files covering all data"},
+    "integrity_bad": {"zh": "  [警告] 完整性检查未通过：{0} 的数据有 {1}，但文件目录只登记了 {2}（{3} 个文件{4}）。\n"
+                            "  游戏本体或更新很可能没有被登记，这个文件大概率无法运行。\n"
+                            "  建议：改用 NSP 作为输入重新合并（本体 NSP + 更新 + DLC），不要用已合并过的 XCI 再加 DLC。",
+                      "en": "  [warning] Integrity check failed: {0} holds {1} of data but its file index covers only {2} ({3} files{4}).\n"
+                            "  The base game or update is probably missing from the index, so the file will most likely not run.\n"
+                            "  Suggestion: merge again from NSP inputs (base NSP + update + DLC) instead of adding DLC to an already merged XCI."},
+    "integrity_dup": {"zh": "，且有重复登记", "en": ", with duplicate entries"},
+    "integrity_error": {"zh": "  [警告] 无法检查 {0} 的完整性：{1}", "en": "  [warning] Could not check the integrity of {0}: {1}"},
+    "integrity_failed": {"zh": "输出文件不完整：{0}（文件已保留，请勿直接使用）", "en": "Output file is incomplete: {0} (kept on disk; do not use it as is)"},
     "card_input": {"zh": "输入文件", "en": "Input"},
     "card_paths": {"zh": "路径", "en": "Paths"},
     "card_meta": {"zh": "信息", "en": "Meta"},

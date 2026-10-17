@@ -245,6 +245,25 @@ def _english_rename(cfg: Config, path: Path, ctx) -> Path:
     return new
 
 
+def _gb(n: int) -> str:
+    return f"{n / 1024 ** 3:.2f} GB" if n >= 1024 ** 3 else f"{n / 1024 ** 2:.1f} MB"
+
+
+def _check_integrity(path: Path, ctx) -> bool:
+    """Log whether an XCI/NSP's file index covers its data; False if it is broken.
+    在日志中报告 XCI/NSP 的文件目录是否覆盖了实际数据；目录不完整时返回 False。"""
+    try:
+        ok, n, indexed, total, dup = titles.check_index(path)
+    except (OSError, ValueError, struct_error) as e:
+        ctx.log(tr("integrity_error", path.name, e))
+        return False
+    if ok:
+        ctx.log(tr("integrity_ok", n))
+    else:
+        ctx.log(tr("integrity_bad", path.name, _gb(total), _gb(indexed), n, tr("integrity_dup") if dup else ""))
+    return ok
+
+
 def _report_outputs(outdir: Path, target: str, cfg: Config = None):
     """First/last step pair: remember when the task started, then list what it produced.
     With cfg given and the setting on, XCI/NSP outputs are renamed to their English title.
@@ -259,11 +278,18 @@ def _report_outputs(outdir: Path, target: str, cfg: Config = None):
         new = [p for p in outdir.iterdir() if p.is_file() and p.stat().st_mtime >= state["t"]]
         if cfg is not None and cfg["english_names"]:
             new = [_english_rename(cfg, p, ctx) if p.suffix.lower() in (".xci", ".nsp") else p for p in new]
+        broken = []
         for p in new:
             ctx.log(tr("output_file", p))
+            if p.suffix.lower() in (".xci", ".nsp") and not _check_integrity(p, ctx):
+                broken.append(p.name)
         if not any(p.suffix.lower() == target for p in new):
             ctx.log(tr("output_mismatch", target[1:].upper(),
                        ", ".join(sorted({p.suffix[1:].upper() for p in new})) or "-"))
+        if broken:
+            # Mark the task failed so the user does not take a broken file for a success.
+            # 把任务标为失败，避免用户把损坏的文件当成成功的结果。
+            raise OpError(tr("integrity_failed", ", ".join(broken)))
     return FuncStep(mark), FuncStep(report)
 
 

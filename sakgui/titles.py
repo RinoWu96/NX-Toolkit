@@ -77,6 +77,32 @@ def list_ncas(path: Path) -> List[Entry]:
     return [e for e in entries if e[0].endswith(".nca") and not e[0].endswith(".cnmt.nca")]
 
 
+def check_index(path: Path) -> Tuple[bool, int, int, int, bool]:
+    """Does the container's file index cover its data? (ok, entries, indexed bytes, data bytes, duplicates)
+    squirrel can write a merged XCI whose secure index lists only a few small files although gigabytes
+    of data were written (seen with an XCI input + several DLC); such a file will not run.
+    检查容器的文件目录是否覆盖了实际数据。返回（是否正常, 条目数, 目录覆盖字节数, 数据字节数, 是否有重复）。
+    squirrel 可能写出这样的合并 XCI：数据写了几个 GB，secure 目录却只登记了几个小文件
+    （见于 XCI 输入加多个 DLC 的情况）；这种文件无法运行。"""
+    with open(path, "rb") as f:
+        if path.suffix.lower() == ".xci":
+            f.seek(0x130)
+            root = struct.unpack("<Q", f.read(8))[0]
+            secure = next((e for e in _hfs0(f, root) if e[0] == "secure"), None)
+            if secure is None:
+                raise ValueError("no secure partition")
+            entries = _hfs0(f, secure[1])
+            start, total = secure[1], secure[2]
+        else:
+            entries = _pfs0(f)
+            start, total = 0, path.stat().st_size
+    indexed = max((off + size for _, off, size in entries), default=start) - start
+    names = [e[0] for e in entries]
+    dup = len(names) != len(set(names))
+    ok = total > 0 and indexed >= 0.99 * total and not dup
+    return ok, len(entries), indexed, total, dup
+
+
 def nacp_titles(nacp: bytes) -> List[str]:
     """The 16 language titles of a NACP (AmericanEnglish first). / NACP 中 16 种语言的标题（美式英语在前）。"""
     return [nacp[i * 0x300:i * 0x300 + 0x200].split(b"\0", 1)[0].decode("utf-8", "replace").strip()
